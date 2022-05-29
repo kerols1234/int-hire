@@ -13,6 +13,8 @@ using System.Threading.Tasks;
 using System.Linq;
 using GB_Backend.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 
 namespace GB_Backend.Controllers
 {
@@ -33,64 +35,7 @@ namespace GB_Backend.Controllers
             _roleManager = roleManager;
             _configuration = configuration;
         }
-        /*
-         [HttpPost]
-         [Authorize]
-         public async Task<IActionResult> UpdateUserInfo([FromBody] UserModel model)
-         {
-             var claim = User.Claims.FirstOrDefault(obj => obj.Type == "Email");
-             if (claim == null)
-             {
-                 return BadRequest("Wrong User email");
-             }
-
-             var user = _userManager.Users.FirstOrDefault(obj => obj.Email == claim.Value);
-
-             if (user == null)
-             {
-                 return BadRequest("No user with this email");
-             }
-
-             if (model.PhoneNumber != null && model.PhoneNumber.Trim() != "")
-             {
-                 if (_userManager.Users.Any(obj => obj.Email != user.Email && obj.PhoneNumber == model.PhoneNumber))
-                 {
-                     return BadRequest("Phone number already exists!");
-                 }
-                 user.PhoneNumber = model.PhoneNumber;
-             }
-
-             if (model.Email != null && model.Email.Trim() != "" && claim.Value != model.Email)
-             {
-                 if (_userManager.Users.Any(obj => obj.Email == model.Email))
-                 {
-                     return BadRequest("Email already exists!");
-                 }
-                 user.Email = model.Email;
-                 user.UserName = model.Email;
-             }
-
-             if (model.Name != null && model.Name.Trim() != "")
-             {
-                 user.Name = model.Name;
-             }
-
-             var result = await _userManager.UpdateAsync(user);
-             if (result.Succeeded)
-             {
-                 var token = GenerateJSONWebToken(user.Email);
-                 return Ok(new
-                 {
-                     token = new JwtSecurityTokenHandler().WriteToken(token),
-                     expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(token.ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt")
-                 });
-             }
-
-             var Descriptions = result.Errors.Select(obj => obj.Description);
-             var errorMassege = string.Join(',', Descriptions);
-             return BadRequest(errorMassege);
-         }
-        */
+       
         [HttpPost]
         public async Task<IActionResult> Login([FromBody] Login model)
         {
@@ -98,19 +43,20 @@ namespace GB_Backend.Controllers
             if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
             {
                 var role = await _userManager.GetRolesAsync(user);
-                var token = GenerateJSONWebToken(model.Email);
+                var token = GenerateJSONWebTokenAsync(model.Email);
 
                 return Ok(new
                 {
                     userType = role.FirstOrDefault(),
-                    token = new JwtSecurityTokenHandler().WriteToken(token),
-                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(token.ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt")
+                    token = new JwtSecurityTokenHandler().WriteToken(await token),
+                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt")
                 });
             }
             return Unauthorized("Wrong email or password");
         }
+      
         [HttpPost]
-        public async Task<IActionResult> RegisterApplicant([FromBody] RegisterApplicant model)
+        public async Task<IActionResult> RegisterApplicant([FromBody] ApplicantForm model)
         {
             //_db.ApplicantUsers.FirstOrDefault(obj => obj.Email == model.Email);
             var userExists = await _userManager.FindByEmailAsync(model.Email);
@@ -146,12 +92,12 @@ namespace GB_Backend.Controllers
             if (result.Succeeded)
             {
                 await _userManager.AddToRoleAsync(user, "Applicant");
-                var token = GenerateJSONWebToken(model.Email);
+                var token = GenerateJSONWebTokenAsync(model.Email);
                 return Ok(new
                 {
                     userType = "Applicant",
-                    token = new JwtSecurityTokenHandler().WriteToken(token),
-                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(token.ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt")
+                    token = new JwtSecurityTokenHandler().WriteToken(await token),
+                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt")
                 });
             }
 
@@ -159,8 +105,9 @@ namespace GB_Backend.Controllers
             var errorMassege = string.Join(',', Descriptions);
             return BadRequest(errorMassege);
         }
+      
         [HttpPost]
-        public async Task<IActionResult> RegisterRecruiter([FromBody] RegisterRecruiter model)
+        public async Task<IActionResult> RegisterRecruiter([FromBody] RecruiterForm model)
         {
             //_db.ApplicantUsers.FirstOrDefault(obj => obj.Email == model.Email);
             var userExists = await _userManager.FindByEmailAsync(model.Email);
@@ -194,12 +141,12 @@ namespace GB_Backend.Controllers
             if (result.Succeeded)
             {
                 await _userManager.AddToRoleAsync(user, "Recruiter");
-                var token = GenerateJSONWebToken(model.Email);
+                var token = GenerateJSONWebTokenAsync(model.Email);
                 return Ok(new
                 {
                     userType = "Recruiter",
-                    token = new JwtSecurityTokenHandler().WriteToken(token),
-                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(token.ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt")
+                    token = new JwtSecurityTokenHandler().WriteToken(await token),
+                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt")
                 });
             }
 
@@ -207,6 +154,51 @@ namespace GB_Backend.Controllers
             var errorMassege = string.Join(',', Descriptions);
             return BadRequest(errorMassege);
         }
+      
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> RegisterAdmin([FromBody] AdminForm model)
+        {
+            var userExists = await _userManager.FindByEmailAsync(model.Email);
+            if (userExists != null)
+            {
+                return BadRequest("Email already exists!");
+            }
+
+            if (_userManager.Users.Any(obj => obj.PhoneNumber == model.PhoneNumber))
+            {
+                return BadRequest("PhoneNumber already exists!");
+            }
+
+            AdminUser user = new AdminUser()
+            {
+                Email = model.Email,
+                UserName = model.Email,
+                Name = model.Name,
+                PhoneNumber = model.PhoneNumber,
+                Gender = model.Gender,
+                BirthDay = model.BirthDay,
+            };
+
+            var result = await _userManager.CreateAsync(user, model.Password);
+
+            if (result.Succeeded)
+            {
+                await _userManager.AddToRoleAsync(user, "Admin");
+                var token = GenerateJSONWebTokenAsync(model.Email);
+                return Ok(new
+                {
+                    userType = "Recruiter",
+                    token = new JwtSecurityTokenHandler().WriteToken(await token),
+                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt")
+                });
+            }
+
+            var Descriptions = result.Errors.Select(obj => obj.Description);
+            var errorMassege = string.Join(',', Descriptions);
+            return BadRequest(errorMassege);
+        }
+      
         [HttpGet]
         [Authorize]
         public IActionResult GetUserInfo()
@@ -230,7 +222,7 @@ namespace GB_Backend.Controllers
                 });
             }
 
-            var applicant = _db.ApplicantUsers.FirstOrDefault(obj => obj.Email == claim.Value);
+            var applicant = _db.ApplicantUsers.Include(obj => obj.Tags).FirstOrDefault(obj => obj.Email == claim.Value);
             if (applicant != null)
             {
                 return Ok(new
@@ -247,11 +239,11 @@ namespace GB_Backend.Controllers
                     applicant.Street,
                     applicant.Country,
                     applicant.TwitterUsername,
-                    applicant.Tags,
+                    tags = applicant.Tags.Select(obj => obj.Name).ToList()
                 });
             }
 
-            var recruiter = _db.RecruiterUsers.FirstOrDefault(obj => obj.Email == claim.Value);
+            var recruiter = _db.RecruiterUsers.Include(obj => obj.Company).FirstOrDefault(obj => obj.Email == claim.Value);
             if (recruiter != null)
             {
                 return Ok(new
@@ -274,7 +266,7 @@ namespace GB_Backend.Controllers
         }
 
         [HttpGet]
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteUser(string email)
         {
             var user = _userManager.Users.FirstOrDefault(obj => obj.Email == email);
@@ -289,48 +281,378 @@ namespace GB_Backend.Controllers
             }
             return BadRequest("User not deleted");
         }
+       
         [HttpPost]
-        [Authorize]
-        public IActionResult addTagesToApplicant(UserTages userTages)
+        [Authorize(Roles = "Applicant")]
+        public IActionResult addAndUpdateTagesToApplicant(UserTages userTages)
         {
             var claim = User.Claims.FirstOrDefault(obj => obj.Type == "Email");
             if (claim == null)
             {
                 return BadRequest("Wrong User email");
             }
-            var applicant = _db.ApplicantUsers.FirstOrDefault(obj => obj.Email == claim.Value);
+            var applicant = _db.ApplicantUsers.Include(obj => obj.Tags).FirstOrDefault(obj => obj.Email == claim.Value);
             if (applicant == null)
             {
                 return BadRequest("Wrong User email");
             }
-            applicant.Tags.Clear();
-            foreach 
-            _db.ApplicantUsers.Update(applicant);
             foreach (var item in userTages.Tags)
             {
-                Tag tag = null;
                 if(!_db.Tags.Any(obj => obj.Name == item))
                 {
-                    tag = new Tag() { Name = item };
+                    Tag tag = new Tag() { Name = item };
                     var result = _db.Tags.Add(tag);
+                    applicant.Tags.Add(tag);
                 }
-                else
+                else if (!applicant.Tags.Any(obj => obj.Name == item))
                 {
-                    tag = _db.Tags.FirstOrDefault(obj => obj.Name == item);
+                    applicant.Tags.Add(_db.Tags.FirstOrDefault(obj => obj.Name == item));
                 }
-                applicant.Tags.Add(tag);
+            }
+            foreach (var item in applicant.Tags)
+            {
+                if (!userTages.Tags.Any(obj => obj == item.Name))
+                {
+                    applicant.Tags.Remove(item);
+                }
             }
             _db.ApplicantUsers.Update(applicant);
             _db.SaveChanges();
             return Ok("Tags Added");
         }
-
-        private JwtSecurityToken GenerateJSONWebToken(string email)
+       
+        [HttpPost]
+        [Authorize(Roles = "Recruiter")]
+        public IActionResult addAndUpdateCompanyToRecruiter(Company company)
         {
+            var claim = User.Claims.FirstOrDefault(obj => obj.Type == "Email");
+            if (claim == null)
+            {
+                return BadRequest("Wrong User email");
+            }
+            var recruiter = _db.RecruiterUsers.Include(obj => obj.Company).AsNoTracking().FirstOrDefault(obj => obj.Email == claim.Value);
+            if (recruiter == null)
+            {
+                return BadRequest("Wrong User email");
+            }
+            if(company.Id != 0)
+            {
+                if (_db.Companies.Any(obj => obj.Id == company.Id))
+                {
+                    company = _db.Companies.FirstOrDefault(obj => obj.Id == company.Id);
+                }
+                else
+                {
+                    company.Id = 0;
+                }
+                
+            }
+            recruiter.Company = company;
+            _db.RecruiterUsers.Update(recruiter);
+            _db.SaveChanges();
+            return Ok("Company Added");
+        }
+       
+        [HttpPost]
+        [Authorize(Roles = "Applicant")]
+        public async Task<IActionResult> UpdateApplicantUserInfo([FromBody] UpdateApplicant model)
+        {
+            var claim = User.Claims.FirstOrDefault(obj => obj.Type == "Email");
+            if (claim == null)
+            {
+                return BadRequest("Wrong User email");
+            }
+
+            var user = _db.ApplicantUsers.FirstOrDefault(obj => obj.Email == claim.Value);
+
+            if (user == null)
+            {
+                return BadRequest("No user with this email");
+            }
+
+            if (model.PhoneNumber != null && model.PhoneNumber.Trim() != "")
+            {
+                if (_userManager.Users.Any(obj => obj.Email != user.Email && obj.PhoneNumber == model.PhoneNumber))
+                {
+                    return BadRequest("Phone number already exists!");
+                }
+                user.PhoneNumber = model.PhoneNumber;
+            }
+
+            if (model.Email != null && model.Email.Trim() != "" && claim.Value != model.Email)
+            {
+                if (_userManager.Users.Any(obj => obj.Email == model.Email))
+                {
+                    return BadRequest("Email already exists!");
+                }
+                user.Email = model.Email;
+                user.UserName = model.Email;
+            }
+
+            if (model.Name != null && model.Name.Trim() != "")
+            {
+                user.Name = model.Name;
+            }
+
+            if (model.BirthDay != null && model.BirthDay.Trim() != "")
+            {
+                user.BirthDay = model.BirthDay;
+            }
+
+            if (model.Country != null && model.Country.Trim() != "")
+            {
+                user.Country = model.Country;
+            }
+
+            if (model.City != null && model.City.Trim() != "")
+            {
+                user.City = model.City;
+            }
+
+            if (model.Street != null && model.Street.Trim() != "")
+            {
+                user.Street = model.Street;
+            }
+
+            if (model.TwitterUsername != null && model.TwitterUsername.Trim() != "")
+            {
+                user.TwitterUsername = model.TwitterUsername;
+            }
+
+            if (model.EducationLevel != null)
+            {
+                user.EducationLevel = (Models.Enums.EducationLevel)model.EducationLevel;
+            }
+
+            if (model.Gender != null)
+            {
+                user.Gender = (Models.Enums.Gender)model.Gender;
+            }
+
+            if (model.MilitaryStatus != null)
+            {
+                user.MilitaryStatus = (Models.MilitaryStatus)model.MilitaryStatus;
+            }
+
+            var result = await _userManager.UpdateAsync(user);
+            if (result.Succeeded)
+            {
+                var token = GenerateJSONWebTokenAsync(user.Email);
+                return Ok(new
+                {
+                    token = new JwtSecurityTokenHandler().WriteToken(await token),
+                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt")
+                });
+            }
+
+            var Descriptions = result.Errors.Select(obj => obj.Description);
+            var errorMassege = string.Join(',', Descriptions);
+            return BadRequest(errorMassege);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Recruiter")]
+        public async Task<IActionResult> UpdateRecruiterUserInfo([FromBody] UpdateRecruiter model)
+        {
+            var claim = User.Claims.FirstOrDefault(obj => obj.Type == "Email");
+            if (claim == null)
+            {
+                return BadRequest("Wrong User email");
+            }
+
+            var user = _db.RecruiterUsers.FirstOrDefault(obj => obj.Email == claim.Value);
+
+            if (user == null)
+            {
+                return BadRequest("No user with this email");
+            }
+
+            if (model.PhoneNumber != null && model.PhoneNumber.Trim() != "")
+            {
+                if (_userManager.Users.Any(obj => obj.Email != user.Email && obj.PhoneNumber == model.PhoneNumber))
+                {
+                    return BadRequest("Phone number already exists!");
+                }
+                user.PhoneNumber = model.PhoneNumber;
+            }
+
+            if (model.Email != null && model.Email.Trim() != "" && claim.Value != model.Email)
+            {
+                if (_userManager.Users.Any(obj => obj.Email == model.Email))
+                {
+                    return BadRequest("Email already exists!");
+                }
+                user.Email = model.Email;
+                user.UserName = model.Email;
+            }
+
+            if (model.Name != null && model.Name.Trim() != "")
+            {
+                user.Name = model.Name;
+            }
+
+            if (model.BirthDay != null && model.BirthDay.Trim() != "")
+            {
+                user.BirthDay = model.BirthDay;
+            }
+
+            if (model.Country != null && model.Country.Trim() != "")
+            {
+                user.Country = model.Country;
+            }
+
+            if (model.City != null && model.City.Trim() != "")
+            {
+                user.City = model.City;
+            }
+
+            if (model.Street != null && model.Street.Trim() != "")
+            {
+                user.Street = model.Street;
+            }
+
+            if (model.Gender != null)
+            {
+                user.Gender = (Models.Enums.Gender)model.Gender;
+            }
+
+            if (model.Position != null && model.Position.Trim() != "")
+            {
+                user.Position = model.Position;
+            }
+
+            var result = await _userManager.UpdateAsync(user);
+            if (result.Succeeded)
+            {
+                var token = GenerateJSONWebTokenAsync(user.Email);
+                return Ok(new
+                {
+                    token = new JwtSecurityTokenHandler().WriteToken(await token),
+                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt")
+                });
+            }
+
+            var Descriptions = result.Errors.Select(obj => obj.Description);
+            var errorMassege = string.Join(',', Descriptions);
+            return BadRequest(errorMassege);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateAdminUserInfo([FromBody] UpdateAdmin model)
+        {
+            var claim = User.Claims.FirstOrDefault(obj => obj.Type == "Email");
+            if (claim == null)
+            {
+                return BadRequest("Wrong User email");
+            }
+
+            var user = _db.AdminUsers.FirstOrDefault(obj => obj.Email == claim.Value);
+
+            if (user == null)
+            {
+                return BadRequest("No user with this email");
+            }
+
+            if (model.PhoneNumber != null && model.PhoneNumber.Trim() != "")
+            {
+                if (_userManager.Users.Any(obj => obj.Email != user.Email && obj.PhoneNumber == model.PhoneNumber))
+                {
+                    return BadRequest("Phone number already exists!");
+                }
+                user.PhoneNumber = model.PhoneNumber;
+            }
+
+            if (model.Email != null && model.Email.Trim() != "" && claim.Value != model.Email)
+            {
+                if (_userManager.Users.Any(obj => obj.Email == model.Email))
+                {
+                    return BadRequest("Email already exists!");
+                }
+                user.Email = model.Email;
+                user.UserName = model.Email;
+            }
+
+            if (model.Name != null && model.Name.Trim() != "")
+            {
+                user.Name = model.Name;
+            }
+
+            if (model.BirthDay != null && model.BirthDay.Trim() != "")
+            {
+                user.BirthDay = model.BirthDay;
+            }
+
+            if (model.Gender != null)
+            {
+                user.Gender = (Models.Enums.Gender)model.Gender;
+            }
+
+            var result = await _userManager.UpdateAsync(user);
+            if (result.Succeeded)
+            {
+                var token = GenerateJSONWebTokenAsync(user.Email);
+                return Ok(new
+                {
+                    token = new JwtSecurityTokenHandler().WriteToken(await token),
+                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt")
+                });
+            }
+
+            var Descriptions = result.Errors.Select(obj => obj.Description);
+            var errorMassege = string.Join(',', Descriptions);
+            return BadRequest(errorMassege);
+        }
+
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePassword model)
+        {
+            var claim = User.Claims.FirstOrDefault(obj => obj.Type == "Email");
+            if (claim == null)
+            {
+                return BadRequest("Wrong User email");
+            }
+
+            var user = _userManager.Users.FirstOrDefault(obj => obj.Email == claim.Value);
+
+            if (user == null)
+            {
+                return BadRequest("No user with this email");
+            }
+
+            var result = await _userManager.ChangePasswordAsync(user, model.OldPassword, model.NewPassword);
+            
+            if (result.Succeeded)
+            {
+                return Ok("Password changed successfully");
+            }
+
+            var Descriptions = result.Errors.Select(obj => obj.Description);
+            var errorMassege = string.Join(',', Descriptions);
+            return BadRequest(errorMassege);
+        }
+
+        private async Task<JwtSecurityToken> GenerateJSONWebTokenAsync(string email)
+        {
+            var claims = new List<Claim>{ new Claim("Email", email) };            
+            var user = await _userManager.FindByEmailAsync(email);
+            var userRoles = await _userManager.GetRolesAsync(user);
+            foreach (var userRole in userRoles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, userRole));
+                var role = await _roleManager.FindByNameAsync(userRole);
+                if (role != null)
+                {
+                    var roleClaims = await _roleManager.GetClaimsAsync(role);
+                    foreach (Claim roleClaim in roleClaims)
+                    {
+                        claims.Add(roleClaim);
+                    }
+                }
+            }            
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-            var claims = new[] { new Claim("Email", email) };
 
             var token = new JwtSecurityToken(_configuration["JWT:ValidIssuer"],
               _configuration["JWT:ValidAudience"],

@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace GB_Backend.Models.APIforms
 {
-    public class RegisterApplicant
+    public class ApplicantForm
     {
         [Required]
         public string Name { get; set; }
