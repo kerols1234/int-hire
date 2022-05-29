@@ -12,7 +12,7 @@ namespace GB_Backend.Models
             Tags = new HashSet<Tag>();
         }
         public string Name { get; set; }
-        public DateTime BirthDay { get; set; }
+        public String BirthDay { get; set; }
         public Gender Gender { get; set; }
         public MilitaryStatus MilitaryStatus { get; set; }
         public string TwitterUsername { get; set; }

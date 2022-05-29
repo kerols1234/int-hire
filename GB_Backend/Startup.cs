@@ -143,9 +143,15 @@ namespace GB_Backend
                 context.Database.Migrate();
                 if (!context.Roles.Any(role=> role.Name == "Admin"))
                 {
-                    context.Roles.Add(new IdentityRole("Admin"));
-                    context.Roles.Add(new IdentityRole("Applicant"));
-                    context.Roles.Add(new IdentityRole("Recruiter"));
+                    var admin = new IdentityRole("Admin");
+                    admin.NormalizedName = "ADMIN";
+                    var applicant = new IdentityRole("Applicant");
+                    applicant.NormalizedName = "APPLICANT";
+                    var recruiter = new IdentityRole("Recruiter");
+                    recruiter.NormalizedName = "RECRUITER";
+                    context.Roles.Add(admin);
+                    context.Roles.Add(applicant);
+                    context.Roles.Add(recruiter);
                 }
                 context.SaveChanges();
             }

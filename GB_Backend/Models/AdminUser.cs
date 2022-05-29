@@ -8,7 +8,7 @@ namespace GB_Backend.Models
     public class AdminUser : IdentityUser
     {
         public string Name { get; set; }
-        public DateTime BirthDay { get; set; }
+        public String BirthDay { get; set; }
         public Gender Gender { get; set; }
     }
 }
