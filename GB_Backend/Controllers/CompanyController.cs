@@ -11,7 +11,7 @@ namespace GB_Backend.Controllers
 {
     [Route("api/[controller]/[action]")]
     [EnableCors]
-    //[Authorize]
+    [Authorize]
     [ApiController]
     public class CompanyController : ControllerBase
     {
@@ -53,7 +53,7 @@ namespace GB_Backend.Controllers
         }
 
         [HttpPost]
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         public IActionResult Edit([FromBody] Company company)
         {
             company.Name = company.Name.ToLower();
@@ -71,7 +71,7 @@ namespace GB_Backend.Controllers
         }
 
         [HttpDelete]
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         public IActionResult Delete(int id)
         {
             var obj = _db.Companies.FirstOrDefault(obj => obj.Id == id);

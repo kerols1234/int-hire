@@ -2,9 +2,9 @@
 
 namespace GB_Backend.Models.APIforms
 {
-    public class UserTages
+    public class TagesForm
     {
-        public UserTages()
+        public TagesForm()
         {
             Tags = new HashSet<string>();
         }

@@ -284,7 +284,7 @@ namespace GB_Backend.Controllers
        
         [HttpPost]
         [Authorize(Roles = "Applicant")]
-        public IActionResult addAndUpdateTagesToApplicant(UserTages userTages)
+        public IActionResult addAndUpdateTagesToApplicant(TagesForm userTages)
         {
             var claim = User.Claims.FirstOrDefault(obj => obj.Type == "Email");
             if (claim == null)
