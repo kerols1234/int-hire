@@ -27,7 +27,7 @@ namespace GB_Backend.Models
 
         [ForeignKey("RecruiterUserId")]
         public virtual RecruiterUser RecruiterUser { get; set; }
-       
+
         public virtual ICollection<Tag> Tags { get; set; }
     }
 

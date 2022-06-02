@@ -1,5 +1,4 @@
 ﻿using GB_Backend.Models.Enums;
-using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace GB_Backend.Models.APIforms
@@ -28,7 +27,7 @@ namespace GB_Backend.Models.APIforms
         [Required]
         public string Country { get; set; }
         [Required]
-        public String BirthDay { get; set; }
+        public string BirthDay { get; set; }
         [Required]
         public Gender Gender { get; set; }
         [Required]

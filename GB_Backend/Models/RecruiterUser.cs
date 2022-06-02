@@ -1,6 +1,5 @@
 ﻿using GB_Backend.Models.Enums;
 using Microsoft.AspNetCore.Identity;
-using System;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GB_Backend.Models
@@ -8,7 +7,7 @@ namespace GB_Backend.Models
     public class RecruiterUser : IdentityUser
     {
         public string Name { get; set; }
-        public String BirthDay { get; set; }
+        public string BirthDay { get; set; }
         public Gender Gender { get; set; }
         public string Street { get; set; }
         public string City { get; set; }

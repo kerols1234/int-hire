@@ -2,8 +2,6 @@
 using GB_Backend.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 
@@ -35,7 +33,7 @@ namespace GB_Backend.Controllers
 
             if (company == null)
                 return BadRequest("No company whith this Id");
-   
+
             return Ok(company);
         }
 
@@ -45,7 +43,7 @@ namespace GB_Backend.Controllers
             company.Name = company.Name.ToLower();
             if (_db.Companies.Any(obj => obj.Name == company.Name))
                 return BadRequest("This company name already exists");
-            
+
             _db.Companies.Add(company);
             _db.SaveChanges();
 
@@ -57,7 +55,7 @@ namespace GB_Backend.Controllers
         public IActionResult Edit([FromBody] Company company)
         {
             company.Name = company.Name.ToLower();
-            
+
             if (!_db.Companies.Any(obj => obj.Id == company.Id))
                 return BadRequest("No company whith this Id");
 
@@ -75,16 +73,16 @@ namespace GB_Backend.Controllers
         public IActionResult Delete(int id)
         {
             var obj = _db.Companies.FirstOrDefault(obj => obj.Id == id);
-            
+
             if (obj == null)
             {
                 return BadRequest("No company with this id");
             }
 
             var result = _db.Companies.Remove(obj);
-                
+
             _db.SaveChanges();
-            
+
             return Ok("Operation is done");
         }
     }

@@ -1,20 +1,20 @@
 ﻿using GB_Backend.Data;
+using GB_Backend.Models;
 using GB_Backend.Models.APIforms;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
-using System.Linq;
-using GB_Backend.Models;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
 
 namespace GB_Backend.Controllers
 {
@@ -35,7 +35,7 @@ namespace GB_Backend.Controllers
             _roleManager = roleManager;
             _configuration = configuration;
         }
-       
+
         [HttpPost]
         public async Task<IActionResult> Login([FromBody] Login model)
         {
@@ -54,7 +54,7 @@ namespace GB_Backend.Controllers
             }
             return Unauthorized("Wrong email or password");
         }
-      
+
         [HttpPost]
         public async Task<IActionResult> RegisterApplicant([FromBody] ApplicantForm model)
         {
@@ -105,7 +105,7 @@ namespace GB_Backend.Controllers
             var errorMassege = string.Join(',', Descriptions);
             return BadRequest(errorMassege);
         }
-      
+
         [HttpPost]
         public async Task<IActionResult> RegisterRecruiter([FromBody] RecruiterForm model)
         {
@@ -154,7 +154,7 @@ namespace GB_Backend.Controllers
             var errorMassege = string.Join(',', Descriptions);
             return BadRequest(errorMassege);
         }
-      
+
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> RegisterAdmin([FromBody] AdminForm model)
@@ -198,7 +198,7 @@ namespace GB_Backend.Controllers
             var errorMassege = string.Join(',', Descriptions);
             return BadRequest(errorMassege);
         }
-      
+
         [HttpGet]
         [Authorize]
         public IActionResult GetUserInfo()
@@ -281,7 +281,7 @@ namespace GB_Backend.Controllers
             }
             return BadRequest("User not deleted");
         }
-       
+
         [HttpPost]
         [Authorize(Roles = "Applicant")]
         public IActionResult addAndUpdateTagesToApplicant(TagesForm userTages)
@@ -298,7 +298,7 @@ namespace GB_Backend.Controllers
             }
             foreach (var item in userTages.Tags)
             {
-                if(!_db.Tags.Any(obj => obj.Name == item))
+                if (!_db.Tags.Any(obj => obj.Name == item))
                 {
                     Tag tag = new Tag() { Name = item };
                     var result = _db.Tags.Add(tag);
@@ -320,7 +320,7 @@ namespace GB_Backend.Controllers
             _db.SaveChanges();
             return Ok("Tags Added");
         }
-       
+
         [HttpPost]
         [Authorize(Roles = "Recruiter")]
         public IActionResult addAndUpdateCompanyToRecruiter(Company company)
@@ -335,7 +335,7 @@ namespace GB_Backend.Controllers
             {
                 return BadRequest("Wrong User email");
             }
-            if(company.Id != 0)
+            if (company.Id != 0)
             {
                 if (_db.Companies.Any(obj => obj.Id == company.Id))
                 {
@@ -345,14 +345,14 @@ namespace GB_Backend.Controllers
                 {
                     company.Id = 0;
                 }
-                
+
             }
             recruiter.Company = company;
             _db.RecruiterUsers.Update(recruiter);
             _db.SaveChanges();
             return Ok("Company Added");
         }
-       
+
         [HttpPost]
         [Authorize(Roles = "Applicant")]
         public async Task<IActionResult> UpdateApplicantUserInfo([FromBody] UpdateApplicant model)
@@ -622,7 +622,7 @@ namespace GB_Backend.Controllers
             }
 
             var result = await _userManager.ChangePasswordAsync(user, model.OldPassword, model.NewPassword);
-            
+
             if (result.Succeeded)
             {
                 return Ok("Password changed successfully");
@@ -635,7 +635,7 @@ namespace GB_Backend.Controllers
 
         private async Task<JwtSecurityToken> GenerateJSONWebTokenAsync(string email)
         {
-            var claims = new List<Claim>{ new Claim("Email", email) };            
+            var claims = new List<Claim> { new Claim("Email", email) };
             var user = await _userManager.FindByEmailAsync(email);
             var userRoles = await _userManager.GetRolesAsync(user);
             foreach (var userRole in userRoles)
@@ -650,7 +650,7 @@ namespace GB_Backend.Controllers
                         claims.Add(roleClaim);
                     }
                 }
-            }            
+            }
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 

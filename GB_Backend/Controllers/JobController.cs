@@ -3,7 +3,6 @@ using GB_Backend.Models;
 using GB_Backend.Models.APIforms;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -73,7 +72,7 @@ namespace GB_Backend.Controllers
 
             if (job == null)
                 return BadRequest("No job whith this Id");
-            
+
             return Ok(job);
         }
 
@@ -114,7 +113,7 @@ namespace GB_Backend.Controllers
             {
                 return BadRequest("Wrong User email");
             }
-            
+
             return Ok(_db.Jobs.Include(obj => obj.Tags).Include(obj => obj.RecruiterUser).Where(obj => obj.RecruiterUserId == user.Id).Select(obj => new
             {
                 obj.Id,
@@ -165,7 +164,7 @@ namespace GB_Backend.Controllers
                 RecruiterUserId = user.Id,
                 Tags = new List<Tag>()
             };
-            
+
             foreach (var item in job.Tags)
             {
                 Tag tag = _db.Tags.FirstOrDefault(obj => obj.Name == item);
@@ -224,7 +223,7 @@ namespace GB_Backend.Controllers
                 else if (!jobToUpdate.Tags.Any(obj => obj.Name == item))
                 {
                     jobToUpdate.Tags.Add(tag);
-                }                
+                }
             }
             foreach (var item in jobToUpdate.Tags)
             {

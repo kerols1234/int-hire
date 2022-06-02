@@ -1,6 +1,5 @@
 ﻿using GB_Backend.Models.Enums;
 using Microsoft.AspNetCore.Identity;
-using System;
 using System.Collections.Generic;
 
 namespace GB_Backend.Models
@@ -12,7 +11,7 @@ namespace GB_Backend.Models
             Tags = new HashSet<Tag>();
         }
         public string Name { get; set; }
-        public String BirthDay { get; set; }
+        public string BirthDay { get; set; }
         public Gender Gender { get; set; }
         public MilitaryStatus MilitaryStatus { get; set; }
         public string TwitterUsername { get; set; }

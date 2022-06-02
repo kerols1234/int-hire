@@ -3,7 +3,6 @@ using GB_Backend.Models;
 using GB_Backend.Models.APIforms;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -166,7 +165,7 @@ namespace GB_Backend.Controllers
             {
                 return BadRequest("Wrong notification id");
             }
-            if(notification.Receiver.Id != user.Id)
+            if (notification.Receiver.Id != user.Id)
             {
                 return BadRequest("User not the receiver of this notification");
             }

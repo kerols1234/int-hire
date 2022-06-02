@@ -1,5 +1,4 @@
 ﻿using GB_Backend.Models.Enums;
-using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace GB_Backend.Models.APIforms
@@ -15,7 +14,7 @@ namespace GB_Backend.Models.APIforms
         public string Street { get; set; }
         public string City { get; set; }
         public string Country { get; set; }
-        public String BirthDay { get; set; }
+        public string BirthDay { get; set; }
         public Gender? Gender { get; set; }
         public MilitaryStatus? MilitaryStatus { get; set; }
         public string TwitterUsername { get; set; }

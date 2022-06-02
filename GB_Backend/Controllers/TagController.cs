@@ -41,7 +41,8 @@ namespace GB_Backend.Controllers
             if (tag == null)
                 return BadRequest("No tag whith this name");
 
-            return Ok(new {
+            return Ok(new
+            {
                 name = tag.Name,
                 countOfJobs = tag.Jobs.Count,
                 countOfApplicants = tag.ApplicantUsers.Count
