@@ -5,9 +5,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="files\**" />
     <Compile Remove="NewFolder\**" />
+    <Content Remove="files\**" />
     <Content Remove="NewFolder\**" />
+    <EmbeddedResource Remove="files\**" />
     <EmbeddedResource Remove="NewFolder\**" />
+    <None Remove="files\**" />
     <None Remove="NewFolder\**" />
   </ItemGroup>
 
@@ -21,10 +25,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="5.6.3" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="files\" />
   </ItemGroup>
 
 </Project>
