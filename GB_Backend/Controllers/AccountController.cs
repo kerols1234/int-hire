@@ -1,6 +1,7 @@
 ﻿using GB_Backend.Data;
 using GB_Backend.Models;
 using GB_Backend.Models.APIforms;
+using GB_Backend.Models.APIModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Identity;
@@ -12,6 +13,8 @@ using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
@@ -58,7 +61,6 @@ namespace GB_Backend.Controllers
         [HttpPost]
         public async Task<IActionResult> RegisterApplicant([FromBody] ApplicantForm model)
         {
-            //_db.ApplicantUsers.FirstOrDefault(obj => obj.Email == model.Email);
             var userExists = await _userManager.FindByEmailAsync(model.Email);
 
             if (userExists != null)
@@ -69,6 +71,31 @@ namespace GB_Backend.Controllers
             if (_userManager.Users.Any(obj => obj.PhoneNumber == model.PhoneNumber))
             {
                 return BadRequest("PhoneNumber already exists!");
+            }
+
+            if (model.TwitterUsername != null)
+            {
+                ResponseModel<TwitterAccount> responseModel = null;
+                using (var client = new HttpClient())
+                {
+                    client.BaseAddress = new Uri("https://api.twitter.com/2/users/");
+                    client.DefaultRequestHeaders.Accept.Clear();
+                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _configuration["Twitter:BearerToken"]);
+                    HttpResponseMessage response = await client.GetAsync($"by/username/{model.TwitterUsername}");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        responseModel = await response.Content.ReadAsAsync<ResponseModel<TwitterAccount>>();
+                        if (responseModel.Errors.Count > 0)
+                        {
+                            return BadRequest("Twitter error: " + responseModel.Errors.FirstOrDefault().Detail);
+                        }
+                    }
+                    else
+                    {
+                        return BadRequest(response.Content.ReadAsStringAsync().Result);
+                    }
+                }
             }
 
             ApplicantUser user = new ApplicantUser()
@@ -416,7 +443,28 @@ namespace GB_Backend.Controllers
 
             if (model.TwitterUsername != null && model.TwitterUsername.Trim() != "")
             {
-                user.TwitterUsername = model.TwitterUsername;
+                ResponseModel<TwitterAccount> responseModel = null;
+                using (var client = new HttpClient())
+                {
+                    client.BaseAddress = new Uri("https://api.twitter.com/2/users/");
+                    client.DefaultRequestHeaders.Accept.Clear();
+                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _configuration["Twitter:BearerToken"]);
+                    HttpResponseMessage response = await client.GetAsync($"by/username/{model.TwitterUsername}");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        responseModel = await response.Content.ReadAsAsync<ResponseModel<TwitterAccount>>();
+                        if (responseModel.Errors.Count > 0)
+                        {
+                            return BadRequest("Twitter error: " + responseModel.Errors.FirstOrDefault().Detail);
+                        }
+                        user.TwitterUsername = model.TwitterUsername;
+                    }
+                    else
+                    {
+                        return BadRequest(response.Content.ReadAsStringAsync().Result);
+                    }
+                }
             }
 
             if (model.EducationLevel != null)
