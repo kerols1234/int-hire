@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Linq;
 
 namespace GB_Backend.Controllers
@@ -98,15 +99,19 @@ namespace GB_Backend.Controllers
                 return BadRequest("can send complaint to admin only");
             }
 
+            if (receiver.Email == sender.Email)
+            {
+                return BadRequest("can't send message to yourself");
+            }
+
             Notification notification = new Notification();
             notification.SenderId = sender.Id;
             notification.ReceiverId = receiver.Id;
             notification.Description = model.Description;
-            notification.Date = model.Date;
+            notification.Date = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt");
             notification.Title = model.Title;
             notification.Viewed = false;
             notification.Type = NotificationType.Complaint;
-
 
             _db.Notifications.Add(notification);
             _db.SaveChanges();
@@ -132,11 +137,16 @@ namespace GB_Backend.Controllers
                 return BadRequest("Wrong receiver email");
             }
 
+            if(receiver.Email == sender.Email)
+            {
+                return BadRequest("can't send message to yourself");
+            }
+
             Notification notification = new Notification();
             notification.SenderId = sender.Id;
             notification.ReceiverId = receiver.Id;
             notification.Description = model.Description;
-            notification.Date = model.Date;
+            notification.Date = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.Now, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt");
             notification.Title = model.Title;
             notification.Viewed = false;
             notification.Type = NotificationType.Message;
