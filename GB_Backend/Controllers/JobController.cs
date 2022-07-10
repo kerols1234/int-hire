@@ -28,24 +28,32 @@ namespace GB_Backend.Controllers
         [HttpGet]
         public IActionResult getAllJobs()
         {
-            return Ok(_db.Jobs.Include(obj => obj.Tags).Include(obj => obj.RecruiterUser).Select(obj => new
+            try
             {
-                obj.Id,
-                obj.Title,
-                obj.Description,
-                obj.Salary,
-                obj.ExpLevel,
-                obj.EducationLevel,
-                obj.Career,
-                obj.JobType,
-                obj.Requirements,
-                deadline = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(obj.Deadline, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt"),
-                postingTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(obj.Posting_Time, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt"),
-                active = obj.Deadline.CompareTo(DateTime.Now) > 0,
-                companyId = obj.RecruiterUser.Company.Id,
-                tags = obj.Tags.Select(t => t.Name).ToList(),
-                recruiterEmail = obj.RecruiterUser.Email
-            }).ToList());
+                var jobs = _db.Jobs.Include(obj => obj.Tags).Include(obj => obj.RecruiterUser).ToList();
+                return Ok(_db.Jobs.Include(obj => obj.Tags).Include(obj => obj.RecruiterUser).Select(obj => new
+                {
+                    obj.Id,
+                    obj.Title,
+                    obj.Description,
+                    obj.Salary,
+                    obj.ExpLevel,
+                    obj.EducationLevel,
+                    obj.Career,
+                    obj.JobType,
+                    obj.Requirements,
+                    deadline = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(obj.Deadline, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt"),
+                    postingTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(obj.Posting_Time, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt"),
+                    active = obj.Deadline.CompareTo(DateTime.Now) > 0,
+                    companyId = obj.RecruiterUser.Company == null ? 0 : obj.RecruiterUser.Company.Id,
+                    tags = obj.Tags.Select(t => t.Name).ToList(),
+                    recruiterEmail = obj.RecruiterUser.Email, 
+                    numberOfApplicants = _db.JobApplicants.Where(obj1 => obj1.JobId == obj.Id).Count(),
+                }).ToList());
+            }catch(Exception e)
+            {
+                return BadRequest(e.Message);
+            }
         }
 
         [HttpGet]
@@ -65,9 +73,10 @@ namespace GB_Backend.Controllers
                 deadline = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(obj.Deadline, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt"),
                 postingTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(obj.Posting_Time, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt"),
                 active = obj.Deadline.CompareTo(DateTime.Now) > 0,
-                companyId = obj.RecruiterUser.Company.Id,
+                companyId = obj.RecruiterUser.Company == null ? 0 : obj.RecruiterUser.Company.Id,
                 tags = obj.Tags.Select(t => t.Name).ToList(),
-                recruiterEmail = obj.RecruiterUser.Email
+                recruiterEmail = obj.RecruiterUser.Email,
+                numberOfApplicants = _db.JobApplicants.Where(obj1 => obj1.JobId == obj.Id).Count(),
             }).FirstOrDefault(j => j.Id == id);
 
             if (job == null)
@@ -93,9 +102,10 @@ namespace GB_Backend.Controllers
                 deadline = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(obj.Deadline, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt"),
                 postingTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(obj.Posting_Time, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt"),
                 active = obj.Deadline.CompareTo(DateTime.Now) > 0,
-                companyId = obj.RecruiterUser.Company.Id,
+                companyId = obj.RecruiterUser.Company == null ? 0 : obj.RecruiterUser.Company.Id,
                 tags = obj.Tags.Select(t => t.Name).ToList(),
-                recruiterEmail = obj.RecruiterUser.Email
+                recruiterEmail = obj.RecruiterUser.Email,
+                numberOfApplicants = _db.JobApplicants.Where(obj1 => obj1.JobId == obj.Id).Count(),
             }).ToList());
         }
 
@@ -128,9 +138,10 @@ namespace GB_Backend.Controllers
                 deadline = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(obj.Deadline, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt"),
                 postingTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(obj.Posting_Time, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt"),
                 active = obj.Deadline.CompareTo(DateTime.Now) > 0,
-                companyId = obj.RecruiterUser.Company.Id,
+                companyId = obj.RecruiterUser.Company == null ? 0 : obj.RecruiterUser.Company.Id,
                 tags = obj.Tags.Select(t => t.Name).ToList(),
-                recruiterEmail = obj.RecruiterUser.Email
+                recruiterEmail = obj.RecruiterUser.Email,
+                numberOfApplicants = _db.JobApplicants.Where(obj1 => obj1.JobId == obj.Id).Count(),
             }).ToList());
         }
 
@@ -170,8 +181,8 @@ namespace GB_Backend.Controllers
                 Tag tag = _db.Tags.FirstOrDefault(obj => obj.Name == item);
                 if (tag == null)
                 {
-                    newJob.Tags.Add(tag);
                     tag = new Tag { Name = item };
+                    newJob.Tags.Add(tag); 
                 }
                 newJob.Tags.Add(tag);
             }
