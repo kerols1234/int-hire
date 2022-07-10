@@ -182,14 +182,14 @@ namespace GB_Backend.Controllers
                 if (tag == null)
                 {
                     tag = new Tag { Name = item };
-                    newJob.Tags.Add(tag); 
+                    _db.Tags.Add(tag); 
                 }
                 newJob.Tags.Add(tag);
             }
 
             _db.Jobs.Add(newJob);
             await _db.SaveChangesAsync();
-            return Ok();
+            return Ok(new {id = newJob.Id});
         }
 
         [HttpPut]
