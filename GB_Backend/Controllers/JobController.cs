@@ -145,6 +145,42 @@ namespace GB_Backend.Controllers
             }).ToList());
         }
 
+        [HttpGet]
+        [Authorize(Roles = "Applicant")]
+        public IActionResult getApplicantJobs()
+        {
+            var claim = User.Claims.FirstOrDefault(obj => obj.Type == "Email");
+            if (claim == null)
+            {
+                return BadRequest("Wrong User email");
+            }
+            var user = _db.ApplicantUsers.FirstOrDefault(obj => obj.Email == claim.Value);
+            if (user == null)
+            {
+                return BadRequest("Wrong User email");
+            }
+
+            return Ok(_db.Jobs.Include(obj => obj.Tags).Include(obj => obj.RecruiterUser).Where(obj => _db.JobApplicants.Any(obj1 => obj1.JobId == obj.Id && obj1.ApplicantUserId == user.Id)).Select(obj => new
+            {
+                obj.Id,
+                obj.Title,
+                obj.Description,
+                obj.Salary,
+                obj.ExpLevel,
+                obj.EducationLevel,
+                obj.Career,
+                obj.JobType,
+                obj.Requirements,
+                deadline = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(obj.Deadline, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt"),
+                postingTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(obj.Posting_Time, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt"),
+                active = obj.Deadline.CompareTo(DateTime.Now) > 0,
+                companyId = obj.RecruiterUser.Company == null ? 0 : obj.RecruiterUser.Company.Id,
+                tags = obj.Tags.Select(t => t.Name).ToList(),
+                recruiterEmail = obj.RecruiterUser.Email,
+                numberOfApplicants = _db.JobApplicants.Where(obj1 => obj1.JobId == obj.Id).Count(),
+            }).ToList());
+        }
+
         [HttpPost]
         [Authorize(Roles = "Recruiter")]
         public async Task<IActionResult> addJob([FromBody] JobForm job)

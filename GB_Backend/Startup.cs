@@ -1,4 +1,5 @@
 using GB_Backend.Data;
+using GB_Backend.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -95,7 +96,7 @@ namespace GB_Backend
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, UserManager<IdentityUser> userManager)
         {
             if (env.IsDevelopment())
             {
@@ -111,7 +112,7 @@ namespace GB_Backend
 
             app.UseRouting();
 
-            UpdateDatabase(app);
+            UpdateDatabase(app, userManager);
 
             app.UseCors(options => options.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 
@@ -125,7 +126,7 @@ namespace GB_Backend
             });
         }
 
-        private void UpdateDatabase(IApplicationBuilder app)
+        private void UpdateDatabase(IApplicationBuilder app, UserManager<IdentityUser> userManager)
         {
             using var serviceScope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>().CreateScope();
             using var context = serviceScope.ServiceProvider.GetService<AppDbContext>();
@@ -143,6 +144,21 @@ namespace GB_Backend
                     context.Roles.Add(admin);
                     context.Roles.Add(applicant);
                     context.Roles.Add(recruiter);
+                }
+                if(!context.Users.Any(obj => obj.Email == "admin@admin.com"))
+                {
+                    var user = new AdminUser
+                    {
+                        Email = "admin@admin.com",
+                        BirthDay = "01-06-1999 12:00 Am",
+                        Gender = Models.Enums.Gender.Male,
+                        Name = "admin",
+                        UserName = "admin@admin.com",
+                        PhoneNumber = "01111111111",
+                    };
+                    var r = userManager.CreateAsync(user, "123456kE@").Result;
+                    var e = userManager.AddToRoleAsync(user, "Admin").Result;
+                    context.Users.Add(new AdminUser());
                 }
                 context.SaveChanges();
             }

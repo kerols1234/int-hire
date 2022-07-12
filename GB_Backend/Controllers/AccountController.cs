@@ -52,7 +52,8 @@ namespace GB_Backend.Controllers
                 {
                     userType = role.FirstOrDefault(),
                     token = new JwtSecurityTokenHandler().WriteToken(await token),
-                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt")
+                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt"),
+                    userDate = userInfo(model.Email)
                 });
             }
             return Unauthorized("Wrong email or password");
@@ -215,7 +216,7 @@ namespace GB_Backend.Controllers
                 var token = GenerateJSONWebTokenAsync(model.Email);
                 return Ok(new
                 {
-                    userType = "Recruiter",
+                    userType = "Admin",
                     token = new JwtSecurityTokenHandler().WriteToken(await token),
                     expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt")
                 });
@@ -235,61 +236,15 @@ namespace GB_Backend.Controllers
             {
                 return BadRequest("Wrong User email");
             }
-            var admin = _db.AdminUsers.FirstOrDefault(obj => obj.Email == claim.Value);
-            if (admin != null)
+            var data = userInfo(claim.Value);
+            if(data.ToString() != "Wrong User email")
             {
-                return Ok(new
-                {
-                    userType = "Admin",
-                    admin.Email,
-                    admin.Name,
-                    admin.PhoneNumber,
-                    admin.BirthDay,
-                    admin.Gender,
-                });
+                return Ok(data);
             }
-
-            var applicant = _db.ApplicantUsers.Include(obj => obj.Tags).FirstOrDefault(obj => obj.Email == claim.Value);
-            if (applicant != null)
+            else
             {
-                return Ok(new
-                {
-                    userType = "applicant",
-                    applicant.Email,
-                    applicant.Name,
-                    applicant.PhoneNumber,
-                    applicant.BirthDay,
-                    applicant.Gender,
-                    applicant.MilitaryStatus,
-                    applicant.EducationLevel,
-                    applicant.City,
-                    applicant.Street,
-                    applicant.Country,
-                    applicant.TwitterUsername,
-                    tags = applicant.Tags.Select(obj => obj.Name).ToList()
-                });
+                return BadRequest(data);
             }
-
-            var recruiter = _db.RecruiterUsers.Include(obj => obj.Company).FirstOrDefault(obj => obj.Email == claim.Value);
-            if (recruiter != null)
-            {
-                return Ok(new
-                {
-                    userType = "Recruiter",
-                    recruiter.Email,
-                    recruiter.Name,
-                    recruiter.PhoneNumber,
-                    recruiter.BirthDay,
-                    recruiter.Gender,
-                    recruiter.City,
-                    recruiter.Street,
-                    recruiter.Country,
-                    recruiter.Position,
-                    recruiter.Company,
-                });
-            };
-
-            return BadRequest("Wrong User email");
         }
 
         [HttpGet]
@@ -709,6 +664,65 @@ namespace GB_Backend.Controllers
               signingCredentials: credentials);
 
             return token;
+        }
+
+        private Object userInfo(string email)
+        {
+            var admin = _db.AdminUsers.FirstOrDefault(obj => obj.Email == email);
+            if (admin != null)
+            {
+                return new
+                {
+                    userType = "Admin",
+                    admin.Email,
+                    admin.Name,
+                    admin.PhoneNumber,
+                    admin.BirthDay,
+                    admin.Gender,
+                };
+            }
+
+            var applicant = _db.ApplicantUsers.Include(obj => obj.Tags).FirstOrDefault(obj => obj.Email == email);
+            if (applicant != null)
+            {
+                return new
+                {
+                    userType = "applicant",
+                    applicant.Email,
+                    applicant.Name,
+                    applicant.PhoneNumber,
+                    applicant.BirthDay,
+                    applicant.Gender,
+                    applicant.MilitaryStatus,
+                    applicant.EducationLevel,
+                    applicant.City,
+                    applicant.Street,
+                    applicant.Country,
+                    applicant.TwitterUsername,
+                    tags = applicant.Tags.Select(obj => obj.Name).ToList()
+                };
+            }
+
+            var recruiter = _db.RecruiterUsers.Include(obj => obj.Company).FirstOrDefault(obj => obj.Email == email);
+            if (recruiter != null)
+            {
+                return new
+                {
+                    userType = "Recruiter",
+                    recruiter.Email,
+                    recruiter.Name,
+                    recruiter.PhoneNumber,
+                    recruiter.BirthDay,
+                    recruiter.Gender,
+                    recruiter.City,
+                    recruiter.Street,
+                    recruiter.Country,
+                    recruiter.Position,
+                    recruiter.Company,
+                };
+            };
+
+            return "Wrong User email";
         }
     }
 }

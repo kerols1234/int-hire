@@ -76,6 +76,29 @@ namespace GB_Backend.Controllers
             }).ToList());
         }
 
+        [HttpGet]
+        public IActionResult getMyComplaint()
+        {
+            var claim = User.Claims.FirstOrDefault(obj => obj.Type == "Email");
+            if (claim == null)
+            {
+                return BadRequest("Wrong User email");
+            }
+            var user = _userManager.Users.FirstOrDefault(obj => obj.Email == claim.Value);
+            if (user == null)
+            {
+                return BadRequest("Wrong User email");
+            }
+            return Ok(_db.Notifications.Include(obj => obj.Receiver).Include(obj => obj.Sender).Where(obj => obj.Type == NotificationType.Complaint && obj.Sender == user).Select(obj => new
+            {
+                obj.Id,
+                obj.Title,
+                obj.Description,
+                obj.Date,
+                obj.Viewed,
+            }).ToList());
+        }
+
         [HttpPost]
         public IActionResult PushComplaint([FromBody] NotificationForm model)
         {
@@ -116,7 +139,7 @@ namespace GB_Backend.Controllers
             _db.Notifications.Add(notification);
             _db.SaveChanges();
 
-            return Ok("Operation is done");
+            return Ok(new { id = notification.Id });
         }
         [HttpPost]
         public IActionResult PushMessage([FromBody] NotificationForm model)
@@ -155,7 +178,7 @@ namespace GB_Backend.Controllers
             _db.Notifications.Add(notification);
             _db.SaveChanges();
 
-            return Ok("Operation is done");
+            return Ok(new {id = notification.Id});
         }
         [HttpGet]
         public IActionResult NotificationViewed(int id)
