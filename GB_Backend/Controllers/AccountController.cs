@@ -112,20 +112,23 @@ namespace GB_Backend.Controllers
                 Street = model.Street,
                 Country = model.Country,
                 MilitaryStatus = model.MilitaryStatus,
-                TwitterUsername = model.TwitterUsername
+                TwitterUsername = model.TwitterUsername,
+                skills = model.Skills,
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
 
             if (result.Succeeded)
             {
+                addTags(user, model.Tags);
                 await _userManager.AddToRoleAsync(user, "Applicant");
                 var token = GenerateJSONWebTokenAsync(model.Email);
                 return Ok(new
                 {
                     userType = "Applicant",
                     token = new JwtSecurityTokenHandler().WriteToken(await token),
-                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt")
+                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt"),
+                    userDate = userInfo(model.Email)
                 });
             }
 
@@ -162,6 +165,7 @@ namespace GB_Backend.Controllers
                 Street = model.Street,
                 Country = model.Country,
                 Position = model.Position,
+                Company = model.Company,
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
@@ -174,7 +178,8 @@ namespace GB_Backend.Controllers
                 {
                     userType = "Recruiter",
                     token = new JwtSecurityTokenHandler().WriteToken(await token),
-                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt")
+                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt"),
+                    userDate = userInfo(model.Email)
                 });
             }
 
@@ -218,7 +223,8 @@ namespace GB_Backend.Controllers
                 {
                     userType = "Admin",
                     token = new JwtSecurityTokenHandler().WriteToken(await token),
-                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt")
+                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt"),
+                    userDate = userInfo(model.Email)
                 });
             }
 
@@ -278,28 +284,7 @@ namespace GB_Backend.Controllers
             {
                 return BadRequest("Wrong User email");
             }
-            foreach (var item in userTages.Tags)
-            {
-                if (!_db.Tags.Any(obj => obj.Name == item))
-                {
-                    Tag tag = new Tag() { Name = item };
-                    var result = _db.Tags.Add(tag);
-                    applicant.Tags.Add(tag);
-                }
-                else if (!applicant.Tags.Any(obj => obj.Name == item))
-                {
-                    applicant.Tags.Add(_db.Tags.FirstOrDefault(obj => obj.Name == item));
-                }
-            }
-            foreach (var item in applicant.Tags)
-            {
-                if (!userTages.Tags.Any(obj => obj == item.Name))
-                {
-                    applicant.Tags.Remove(item);
-                }
-            }
-            _db.ApplicantUsers.Update(applicant);
-            _db.SaveChanges();
+            addTags(applicant, userTages.Tags);
             return Ok("Tags Added");
         }
 
@@ -699,6 +684,7 @@ namespace GB_Backend.Controllers
                     applicant.Street,
                     applicant.Country,
                     applicant.TwitterUsername,
+                    applicant.skills,
                     tags = applicant.Tags.Select(obj => obj.Name).ToList()
                 };
             }
@@ -723,6 +709,32 @@ namespace GB_Backend.Controllers
             };
 
             return "Wrong User email";
+        }
+
+        private void addTags(ApplicantUser applicant, ICollection<string> tags)
+        {
+            foreach (var item in tags)
+            {
+                if (!_db.Tags.Any(obj => obj.Name == item))
+                {
+                    Tag tag = new Tag() { Name = item };
+                    var result = _db.Tags.Add(tag);
+                    applicant.Tags.Add(tag);
+                }
+                else if (!applicant.Tags.Any(obj => obj.Name == item))
+                {
+                    applicant.Tags.Add(_db.Tags.FirstOrDefault(obj => obj.Name == item));
+                }
+            }
+            foreach (var item in applicant.Tags)
+            {
+                if (!tags.Any(obj => obj == item.Name))
+                {
+                    applicant.Tags.Remove(item);
+                }
+            }
+            _db.ApplicantUsers.Update(applicant);
+            _db.SaveChanges();
         }
     }
 }

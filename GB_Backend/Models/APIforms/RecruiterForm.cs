@@ -32,5 +32,7 @@ namespace GB_Backend.Models.APIforms
         public Gender Gender { get; set; }
         [Required]
         public string Position { get; set; }
+        [Required]
+        public Company Company { get; set; }
     }
 }

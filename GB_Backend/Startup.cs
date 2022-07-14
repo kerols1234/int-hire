@@ -68,7 +68,7 @@ namespace GB_Backend
 
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "Se7etakTPA", Version = "v1" });
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "personal prediction", Version = "v1" });
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
                 {
                     Name = "Authorization",
@@ -96,7 +96,7 @@ namespace GB_Backend
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, UserManager<IdentityUser> userManager)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager)
         {
             if (env.IsDevelopment())
             {
@@ -112,7 +112,7 @@ namespace GB_Backend
 
             app.UseRouting();
 
-            UpdateDatabase(app, userManager);
+            UpdateDatabase(app, userManager, roleManager);
 
             app.UseCors(options => options.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 
@@ -126,26 +126,24 @@ namespace GB_Backend
             });
         }
 
-        private void UpdateDatabase(IApplicationBuilder app, UserManager<IdentityUser> userManager)
+        private void UpdateDatabase(IApplicationBuilder app, UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager)
         {
             using var serviceScope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>().CreateScope();
             using var context = serviceScope.ServiceProvider.GetService<AppDbContext>();
             try
             {
                 context.Database.Migrate();
-                if (!context.Roles.Any(role => role.Name == "Admin"))
+                if (!context.Roles.Any(role => role.Name == "Applicant"))
                 {
                     var admin = new IdentityRole("Admin");
-                    admin.NormalizedName = "ADMIN";
                     var applicant = new IdentityRole("Applicant");
-                    applicant.NormalizedName = "APPLICANT";
                     var recruiter = new IdentityRole("Recruiter");
-                    recruiter.NormalizedName = "RECRUITER";
-                    context.Roles.Add(admin);
-                    context.Roles.Add(applicant);
-                    context.Roles.Add(recruiter);
+                    var r = roleManager.CreateAsync(admin).Result;
+                    r = roleManager.CreateAsync(applicant).Result;
+                    r = roleManager.CreateAsync(recruiter).Result;
                 }
-                if(!context.Users.Any(obj => obj.Email == "admin@admin.com"))
+                context.SaveChanges();
+                if (!context.Users.Any(obj => obj.Email == "admin@admin.com"))
                 {
                     var user = new AdminUser
                     {

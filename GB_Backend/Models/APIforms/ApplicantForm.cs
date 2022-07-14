@@ -1,10 +1,16 @@
 ﻿using GB_Backend.Models.Enums;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace GB_Backend.Models.APIforms
 {
     public class ApplicantForm
     {
+        public ApplicantForm()
+        {
+            Tags = new HashSet<string>();
+        }
+
         [Required]
         public string Name { get; set; }
 
@@ -35,5 +41,9 @@ namespace GB_Backend.Models.APIforms
         public string TwitterUsername { get; set; }
         [Required]
         public EducationLevel EducationLevel { get; set; }
+        [Required]
+        public ICollection<string> Tags { get; set; }
+        [Required]
+        public string Skills { get; set; }
     }
 }
