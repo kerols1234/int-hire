@@ -1,10 +1,15 @@
 ﻿using GB_Backend.Models.Enums;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace GB_Backend.Models.APIforms
 {
     public class UpdateApplicant
     {
+        public UpdateApplicant()
+        {
+            Tags = new HashSet<string>();
+        }
         public string Name { get; set; }
         [EmailAddress]
         public string Email { get; set; }
@@ -19,5 +24,7 @@ namespace GB_Backend.Models.APIforms
         public MilitaryStatus? MilitaryStatus { get; set; }
         public string TwitterUsername { get; set; }
         public EducationLevel? EducationLevel { get; set; }
+        public ICollection<string> Tags { get; set; }
+        public string Skills { get; set; }
     }
 }

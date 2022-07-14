@@ -17,5 +17,6 @@ namespace GB_Backend.Models.APIforms
         public string BirthDay { get; set; }
         public Gender? Gender { get; set; }
         public string Position { get; set; }
+        public Company Company { get; set; }
     }
 }

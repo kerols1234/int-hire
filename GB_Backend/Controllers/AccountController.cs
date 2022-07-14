@@ -330,7 +330,7 @@ namespace GB_Backend.Controllers
                 return BadRequest("Wrong User email");
             }
 
-            var user = _db.ApplicantUsers.FirstOrDefault(obj => obj.Email == claim.Value);
+            var user = _db.ApplicantUsers.Include(obj => obj.Tags).FirstOrDefault(obj => obj.Email == claim.Value);
 
             if (user == null)
             {
@@ -422,14 +422,24 @@ namespace GB_Backend.Controllers
                 user.MilitaryStatus = (Models.MilitaryStatus)model.MilitaryStatus;
             }
 
+            if (model.Skills != null)
+            {
+                user.skills = model.Skills;
+            }
+
             var result = await _userManager.UpdateAsync(user);
             if (result.Succeeded)
             {
+                if (model.Tags != null && model.Tags.Count() != 0)
+                {
+                    addTags(user, model.Tags);
+                }
                 var token = GenerateJSONWebTokenAsync(user.Email);
                 return Ok(new
                 {
                     token = new JwtSecurityTokenHandler().WriteToken(await token),
-                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt")
+                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt"),
+                    userDate = userInfo(model.Email)
                 });
             }
 
@@ -509,6 +519,11 @@ namespace GB_Backend.Controllers
                 user.Position = model.Position;
             }
 
+            if (model.Company != null)
+            {
+                user.Company = model.Company;
+            }
+
             var result = await _userManager.UpdateAsync(user);
             if (result.Succeeded)
             {
@@ -516,7 +531,8 @@ namespace GB_Backend.Controllers
                 return Ok(new
                 {
                     token = new JwtSecurityTokenHandler().WriteToken(await token),
-                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt")
+                    expiration = TimeZoneInfo.ConvertTimeBySystemTimeZoneId((await token).ValidTo, "Egypt Standard Time").ToString("dd-MM-yyyy hh:mm tt"),
+                    userDate = userInfo(model.Email)
                 });
             }
 
