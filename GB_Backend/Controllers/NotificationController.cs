@@ -30,26 +30,32 @@ namespace GB_Backend.Controllers
         [Authorize(Roles = "Admin")]
         public IActionResult getAllComplaint()
         {
-            var claim = User.Claims.FirstOrDefault(obj => obj.Type == "Email");
-            if (claim == null)
+            try
             {
-                return BadRequest("Wrong User email");
+                var claim = User.Claims.FirstOrDefault(obj => obj.Type == "Email");
+                if (claim == null)
+                {
+                    return BadRequest("Wrong User email");
+                }
+                var user = _userManager.Users.FirstOrDefault(obj => obj.Email == claim.Value);
+                if (user == null)
+                {
+                    return BadRequest("Wrong User email");
+                }
+                return Ok(_db.Notifications.Include(obj => obj.Receiver).Include(obj => obj.Sender).Where(obj => obj.Type == NotificationType.Complaint && obj.Receiver == user).Select(obj => new
+                {
+                    obj.Id,
+                    obj.Title,
+                    obj.Description,
+                    obj.Date,
+                    obj.Viewed,
+                    sender = obj.Sender.Email,
+                    senderType = _db.Roles.Where(obj2 => obj2.Id == _db.UserRoles.Where(obj1 => obj1.UserId == obj.Sender.Id).FirstOrDefault().RoleId).FirstOrDefault().Name,
+                }).ToList());
+            } catch (Exception e)
+            {
+                return Ok(e.Message);
             }
-            var user = _userManager.Users.FirstOrDefault(obj => obj.Email == claim.Value);
-            if (user == null)
-            {
-                return BadRequest("Wrong User email");
-            }
-            return Ok(_db.Notifications.Include(obj => obj.Receiver).Include(obj => obj.Sender).Where(obj => obj.Type == NotificationType.Complaint && obj.Receiver == user).Select(obj => new
-            {
-                obj.Id,
-                obj.Title,
-                obj.Description,
-                obj.Date,
-                obj.Viewed,
-                sender = obj.Sender.Email,
-                senderType = _userManager.GetRolesAsync(obj.Sender).Result.FirstOrDefault(),
-            }).ToList());
         }
         [HttpGet]
         public IActionResult getAllMessage()
@@ -72,7 +78,7 @@ namespace GB_Backend.Controllers
                 obj.Date,
                 obj.Viewed,
                 sender = obj.Sender.Email,
-                senderType = _userManager.GetRolesAsync(obj.Sender).Result.FirstOrDefault(),
+                senderType = _db.Roles.Where(obj2 => obj2.Id == _db.UserRoles.Where(obj1 => obj1.UserId == obj.Sender.Id).FirstOrDefault().RoleId).FirstOrDefault().Name,
             }).ToList());
         }
 

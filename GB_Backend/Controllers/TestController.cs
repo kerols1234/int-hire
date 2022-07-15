@@ -1,6 +1,9 @@
-﻿using GB_Backend.Data;
+﻿using CsvHelper;
+using GB_Backend.Data;
+using GB_Backend.Models;
 using GB_Backend.Models.APIforms;
 using GB_Backend.Models.APIModels;
+using idCard.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
@@ -8,6 +11,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -30,6 +35,106 @@ namespace GB_Backend.Controllers
             _configuration = configuration;
         }
 
+        [HttpPost]
+        public async Task<IActionResult> test([FromForm] FilesModel file)
+        {
+            var fileextension = Path.GetExtension(file.files.FileName);
+            var filename = Guid.NewGuid().ToString() + fileextension;
+            var filepath = Path.Combine(Directory.GetCurrentDirectory(), "files", filename);
+            using (FileStream fs = System.IO.File.Create(filepath))
+            {
+                file.files.CopyTo(fs);
+            }
+            if (fileextension == ".csv")
+            {
+                using (var reader = new StreamReader(filepath))
+                using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+                {
+                    var records = csv.GetRecords<TestModel>();
+                    foreach (var record in records)
+                    {
+
+                        if (string.IsNullOrWhiteSpace(record.Question))
+                        {
+                            break;
+                        }
+                        Test test;
+                        test = _db.Tests.Where(s => s.Question == record.Question).FirstOrDefault();
+
+                        if (test == null)
+                        {
+                            test = new Test();
+                        }
+                        if (record.LabelA == "P")
+                        {
+                            test.Question = record.Question;
+                            test.LabelA = record.LabelB;
+                            test.LabelB = record.LabelA;
+                            test.AnswerB = record.A;
+                            test.AnswerA = record.B;
+                        }
+                        else
+                        {
+                            test.Question = record.Question;
+                            test.LabelA = record.LabelA;
+                            test.LabelB = record.LabelB;
+                            test.AnswerB = record.B;
+                            test.AnswerA = record.A;
+                        }
+                        await _db.Tests.AddAsync(test);
+
+                    }
+                    _db.SaveChanges();
+                }
+            }
+            return Ok();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> MTPI([FromForm] FilesModel file)
+        {
+            var fileextension = Path.GetExtension(file.files.FileName);
+            var filename = Guid.NewGuid().ToString() + fileextension;
+            var filepath = Path.Combine(Directory.GetCurrentDirectory(), "files", filename);
+            using (FileStream fs = System.IO.File.Create(filepath))
+            {
+                file.files.CopyTo(fs);
+            }
+            if (fileextension == ".csv")
+            {
+                using (var reader = new StreamReader(filepath))
+                using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+                {
+                    var records = csv.GetRecords<MBTIType>();
+                    foreach (var record in records)
+                    {
+
+                        if (string.IsNullOrWhiteSpace(record.Type))
+                        {
+                            break;
+                        }
+                        MBTIType mbti;
+                        mbti = _db.MBTITypes.Where(s => s.Type == record.Type).FirstOrDefault();
+
+                        if (mbti == null)
+                        {
+                            mbti = new MBTIType();
+                        }
+
+
+
+                        mbti = record;
+
+                        await _db.MBTITypes.AddAsync(mbti);
+
+                    }
+                    _db.SaveChanges();
+                }
+            }
+            return Ok();
+        }
+
+
         [HttpGet]
         public IActionResult getInformationByJobId(int id)
         {
@@ -44,13 +149,24 @@ namespace GB_Backend.Controllers
         [HttpGet]
         public IActionResult getTestQuestions()
         {
-            return Ok(_db.Tests.Select(obj => new
+            return Ok(_db.Tests.ToList());
+        }
+
+        [HttpGet]
+        public IActionResult getMPTI()
+        {
+            return Ok(_db.MBTITypes.Select(obj => new
             {
-                obj.Id,
-                obj.Question,
-                obj.AnswerA,
-                obj.AnswerB,
-            }).ToList());
+                obj.Type,
+                obj.Nickname,
+                obj.Definition,
+                obj.Introduction,
+                obj.StrengthsandWeaknesses,
+                obj.CareerPaths,
+                obj.WorkplaceHabits,
+                obj.Description
+            }
+            ).ToList());
         }
 
         [HttpPost]
@@ -158,7 +274,7 @@ namespace GB_Backend.Controllers
                             return BadRequest("Twitter error: " + tweets.Errors.FirstOrDefault().Detail);
                         }
                         tweets.Data = tweets.Data.Where(obj => !obj.Text.EndsWith("…")).ToHashSet();
-                        text += tweets.Data.Aggregate("", (total,next) => total += " " + next.Text);
+                        text += tweets.Data.Aggregate("", (total, next) => total += " " + next.Text);
                         countOfTweets += tweets.Data.Count;
                     }
                     else
@@ -177,7 +293,7 @@ namespace GB_Backend.Controllers
                 client.BaseAddress = new Uri("http://127.0.0.1:5000/");
                 client.DefaultRequestHeaders.Accept.Clear();
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                
+
                 HttpResponseMessage response = await client.PostAsJsonAsync("response", tweetsData);
                 if (response.IsSuccessStatusCode)
                 {

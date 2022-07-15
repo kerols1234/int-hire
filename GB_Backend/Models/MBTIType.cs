@@ -7,8 +7,8 @@ namespace GB_Backend.Models
         [Key]
         public string Type { get; set; }
         public string Introduction { get; set; }
-        public string StrengthsAndWeakness { get; set; }
-        public string RomanticRelationship { get; set; }
+        public string StrengthsandWeaknesses { get; set; }
+        public string RomanticRelationships { get; set; }
         public string Friendships { get; set; }
         public string Parenthood { get; set; }
         public string CareerPaths { get; set; }
