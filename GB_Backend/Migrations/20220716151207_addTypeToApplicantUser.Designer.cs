@@ -4,14 +4,16 @@ using GB_Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace GB_Backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20220716151207_addTypeToApplicantUser")]
+    partial class addTypeToApplicantUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -32,58 +34,6 @@ namespace GB_Backend.Migrations
                     b.HasIndex("TagsName");
 
                     b.ToTable("ApplicantUserTag");
-                });
-
-            modelBuilder.Entity("GB_Backend.Models.APIModels.MPTIModel", b =>
-                {
-                    b.Property<string>("personality")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("AtWork")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CareerstoAvoid")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ChallengingOpposites")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Characteristics")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("GrowthandDevelopment")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("IntriguingDifferences")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("KindredSpirits")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("MainTriat")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Overview")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PotentialComplements")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Strengths")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Topcareers")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ValuesandMotivations")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Weaknesses")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("personality");
-
-                    b.ToTable("MPTIModels");
                 });
 
             modelBuilder.Entity("GB_Backend.Models.Company", b =>

@@ -21,6 +21,8 @@ namespace GB_Backend.Models
         public string Country { get; set; }
         public string skills { get; set; }
         public virtual ICollection<Tag> Tags { get; set; }
+        public string TestPersonality { get; set; }
+        public string TwitterPersonality { get; set; }
     }
 
     public enum MilitaryStatus

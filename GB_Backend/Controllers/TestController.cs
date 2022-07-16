@@ -91,6 +91,49 @@ namespace GB_Backend.Controllers
         }
 
         [HttpPost]
+        public async Task<IActionResult> ranking([FromForm] FilesModel file)
+        {
+            var fileextension = Path.GetExtension(file.files.FileName);
+            var filename = Guid.NewGuid().ToString() + fileextension;
+            var filepath = Path.Combine(Directory.GetCurrentDirectory(), "files", filename);
+            using (FileStream fs = System.IO.File.Create(filepath))
+            {
+                file.files.CopyTo(fs);
+            }
+            if (fileextension == ".csv")
+            {
+                using (var reader = new StreamReader(filepath))
+                using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+                {
+                    var records = csv.GetRecords<MPTIModel>();
+                    foreach (var record in records)
+                    {
+
+                        if (string.IsNullOrWhiteSpace(record.personality))
+                        {
+                            break;
+                        }
+                        MPTIModel model;
+                        model = _db.MPTIModels.Where(s => s.personality == record.personality).FirstOrDefault();
+
+                        if (model == null)
+                        {
+                            model = new MPTIModel();
+                        }
+
+                        model = record;
+
+                        await _db.MPTIModels.AddAsync(model);
+
+                    }
+                    _db.SaveChanges();
+                }
+            }
+            return Ok();
+        }
+
+
+        [HttpPost]
         public async Task<IActionResult> MTPI([FromForm] FilesModel file)
         {
             var fileextension = Path.GetExtension(file.files.FileName);
@@ -134,18 +177,6 @@ namespace GB_Backend.Controllers
             return Ok();
         }
 
-
-        [HttpGet]
-        public IActionResult getInformationByJobId(int id)
-        {
-            return Ok(_db.JobApplicants.Where(obj => obj.JobId == id).Include(obj => obj.MBTIType).Include(obj => obj.ApplicantUser).Include(obj => obj.Job).Select(obj => new
-            {
-                userEmail = obj.ApplicantUser.Email,
-                obj.MBTIType,
-                obj.Job,
-            }).ToList());
-        }
-
         [HttpGet]
         public IActionResult getTestQuestions()
         {
@@ -169,16 +200,24 @@ namespace GB_Backend.Controllers
             ).ToList());
         }
 
+        [HttpGet]
+        public IActionResult getModel()
+        {
+            return Ok(_db.MPTIModels.Select(obj => new
+            {
+                obj.personality,
+                obj.KindredSpirits,
+                obj.ChallengingOpposites,
+                obj.PotentialComplements,
+                obj.IntriguingDifferences,
+            }).ToList());
+        }
+
+
         [HttpPost]
         [Authorize(Roles = "Applicant")]
         public async Task<IActionResult> postAnswer([FromBody] TestForm testForm)
         {
-            /*
-            if (testForm.Answers.Count != 56)
-            {
-                return BadRequest("Number of answers must be 56");
-            }
-            */
             var claim = User.Claims.FirstOrDefault(obj => obj.Type == "Email");
             if (claim == null)
             {
@@ -194,50 +233,6 @@ namespace GB_Backend.Controllers
             {
                 return BadRequest("Wrong Job Id");
             }
-
-            int[] counts = new int[4];
-            string type = "ESTP";
-
-            foreach (var item in testForm.Answers)
-            {
-                var testQuestion = _db.Tests.Where(obj => obj.Id == item.Id).FirstOrDefault();
-               
-                if (testQuestion == null)
-                {
-                    return BadRequest("Wrong Question Id");
-                }
-                
-                if (testQuestion.AnswerA == item.answer)
-                {
-                    counts[item.Id % 4]++;
-                }
-                else
-                {
-                    counts[item.Id % 4]--;
-                }
-            }
-
-            if (counts[1] <= 0)
-            {
-                type = type.Replace('E', 'I');
-            }
-            if (counts[2] <= 0)
-            {
-                type = type.Replace('S', 'N');
-            }
-            if (counts[3] <= 0)
-            {
-                type = type.Replace('T', 'F');
-            }
-            if (counts[0] < 0)
-            {
-                type = type.Replace('P', 'J');
-            }
-            */
-            /*
-             *Api for tweeter
-             *Api for machine model
-             *combine all to get on type of user
             */
             ResponseModel<TwitterAccount> twitterAccount = null;
             ResponseModel<HashSet<TweetModel>> tweets = null;

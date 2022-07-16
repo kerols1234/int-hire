@@ -243,7 +243,7 @@ namespace GB_Backend.Controllers
                 return BadRequest("Wrong User email");
             }
             var data = userInfo(claim.Value);
-            if(data.ToString() != "Wrong User email")
+            if (data.ToString() != "Wrong User email")
             {
                 return Ok(data);
             }
@@ -637,6 +637,130 @@ namespace GB_Backend.Controllers
             return BadRequest(errorMassege);
         }
 
+        [HttpPost]
+        [Authorize(Roles = "Applicant")]
+        public async Task<IActionResult> addTestPersonality([FromBody] string type)
+        {
+            var claim = User.Claims.FirstOrDefault(obj => obj.Type == "Email");
+            if (claim == null)
+            {
+                return BadRequest("Wrong User email");
+            }
+
+            var user = _db.ApplicantUsers.FirstOrDefault(obj => obj.Email == claim.Value);
+
+            if (user == null)
+            {
+                return BadRequest("No applicant with this email");
+            }
+
+            user.TestPersonality = type;
+
+            var result = await _userManager.UpdateAsync(user);
+
+            if (result.Succeeded)
+            {
+                return Ok("update test personality successfully");
+            }
+
+            var Descriptions = result.Errors.Select(obj => obj.Description);
+            var errorMassege = string.Join(',', Descriptions);
+            return BadRequest(errorMassege);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Applicant")]
+        public async Task<IActionResult> addTwitterPersonality()
+        {
+            var claim = User.Claims.FirstOrDefault(obj => obj.Type == "Email");
+            if (claim == null)
+            {
+                return BadRequest("Wrong User email");
+            }
+            var applicant = _db.ApplicantUsers.FirstOrDefault(obj => obj.Email == claim.Value);
+            if (applicant == null)
+            {
+                return BadRequest("Wrong User email");
+            }
+            ResponseModel<TwitterAccount> twitterAccount = null;
+            ResponseModel<HashSet<TweetModel>> tweets = null;
+            string text = "";
+            int countOfTweets = 0;
+            using (var client = new HttpClient())
+            {
+                client.BaseAddress = new Uri("https://api.twitter.com/2/users/");
+                client.DefaultRequestHeaders.Accept.Clear();
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _configuration["Twitter:BearerToken"]);
+
+                HttpResponseMessage response = await client.GetAsync($"by/username/{applicant.TwitterUsername}");
+                if (response.IsSuccessStatusCode)
+                {
+                    twitterAccount = await response.Content.ReadAsAsync<ResponseModel<TwitterAccount>>();
+                    if (twitterAccount.Errors.Count > 0)
+                    {
+                        return BadRequest("Twitter error: " + twitterAccount.Errors.FirstOrDefault().Detail);
+                    }
+                }
+                else
+                {
+                    return BadRequest(response.Content.ReadAsStringAsync().Result);
+                }
+                response = await client.GetAsync($"{twitterAccount.Data.Id}/tweets?max_results=100");
+                do
+                {
+                    if (response.IsSuccessStatusCode)
+                    {
+                        tweets = await response.Content.ReadAsAsync<ResponseModel<HashSet<TweetModel>>>();
+                        if (tweets.Errors.Count > 0)
+                        {
+                            return BadRequest("Twitter error: " + tweets.Errors.FirstOrDefault().Detail);
+                        }
+                        tweets.Data = tweets.Data.Where(obj => !obj.Text.EndsWith("…")).ToHashSet();
+                        text += tweets.Data.Aggregate("", (total, next) => total += " " + next.Text);
+                        countOfTweets += tweets.Data.Count;
+                    }
+                    else
+                    {
+                        return BadRequest(response.Content.ReadAsStringAsync().Result);
+                    }
+
+                    response = await client.GetAsync($"{twitterAccount.Data.Id}/tweets?max_results=100&pagination_token={tweets.Meta.Next_token}");
+                } while (tweets.Meta.Next_token != null && countOfTweets < 100);
+            }
+            PredictTypeModel typeModel = null;
+            TweetsData tweetsData = new TweetsData();
+            tweetsData.data = text;
+            using (var client = new HttpClient())
+            {
+                client.BaseAddress = new Uri("https://inte-hire-38558.ondigitalocean.app/");
+                client.DefaultRequestHeaders.Accept.Clear();
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                HttpResponseMessage response = await client.PostAsJsonAsync("response", tweetsData);
+                if (response.IsSuccessStatusCode)
+                {
+                    typeModel = await response.Content.ReadAsAsync<PredictTypeModel>();
+                }
+                else
+                {
+                    return BadRequest(response.Content.ReadAsStringAsync().Result);
+                }
+            }
+
+            applicant.TwitterPersonality = typeModel.Type;
+            var result = await _userManager.UpdateAsync(applicant);
+
+            if (result.Succeeded)
+            {
+                return Ok(new { type = typeModel.Type });
+            }
+
+            var Descriptions = result.Errors.Select(obj => obj.Description);
+            var errorMassege = string.Join(',', Descriptions);
+            return BadRequest(errorMassege);
+        }
+
         private async Task<JwtSecurityToken> GenerateJSONWebTokenAsync(string email)
         {
             var claims = new List<Claim> { new Claim("Email", email) };
@@ -701,6 +825,8 @@ namespace GB_Backend.Controllers
                     applicant.Country,
                     applicant.TwitterUsername,
                     applicant.skills,
+                    applicant.TestPersonality,
+                    applicant.TwitterPersonality,
                     tags = applicant.Tags.Select(obj => obj.Name).ToList()
                 };
             }

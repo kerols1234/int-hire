@@ -1,7 +1,10 @@
-﻿namespace GB_Backend.Models.APIModels
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace GB_Backend.Models.APIModels
 {
     public class MPTIModel
     {
+        [Key]
         public string personality { get; set; }
         public string Overview { get; set; }
         public string ValuesandMotivations { get; set; }

@@ -47,10 +47,11 @@ namespace GB_Backend.Controllers
                     active = obj.Deadline.CompareTo(DateTime.Now) > 0,
                     companyId = obj.RecruiterUser.Company == null ? 0 : obj.RecruiterUser.Company.Id,
                     tags = obj.Tags.Select(t => t.Name).ToList(),
-                    recruiterEmail = obj.RecruiterUser.Email, 
+                    recruiterEmail = obj.RecruiterUser.Email,
                     numberOfApplicants = _db.JobApplicants.Where(obj1 => obj1.JobId == obj.Id).Count(),
                 }).ToList());
-            }catch(Exception e)
+            }
+            catch (Exception e)
             {
                 return BadRequest(e.Message);
             }
@@ -218,14 +219,14 @@ namespace GB_Backend.Controllers
                 if (tag == null)
                 {
                     tag = new Tag { Name = item };
-                    _db.Tags.Add(tag); 
+                    _db.Tags.Add(tag);
                 }
                 newJob.Tags.Add(tag);
             }
 
             _db.Jobs.Add(newJob);
             await _db.SaveChangesAsync();
-            return Ok(new {id = newJob.Id});
+            return Ok(new { id = newJob.Id });
         }
 
         [HttpPut]
@@ -337,5 +338,74 @@ namespace GB_Backend.Controllers
             await _db.SaveChangesAsync();
             return Ok();
         }
+
+        [HttpPost]
+        [Authorize(Roles = "Applicant")]
+        public async Task<IActionResult> applyToJob([FromBody] int id)
+        {
+            var claim = User.Claims.FirstOrDefault(obj => obj.Type == "Email");
+            if (claim == null)
+            {
+                return BadRequest("Wrong User email");
+            }
+            var user = _db.ApplicantUsers.FirstOrDefault(obj => obj.Email == claim.Value);
+            if (user == null)
+            {
+                return BadRequest("Wrong User email");
+            }
+
+            if (!_db.Jobs.Any(obj => obj.Id == id))
+            {
+                return BadRequest("No job whith this Id");
+            }
+
+            if (_db.JobApplicants.Any(obj => obj.ApplicantUserId == user.Id && obj.JobId == _db.Jobs.FirstOrDefault(obj => obj.Id == id).Id))
+            {
+                return BadRequest("already applied to this job");
+            }
+
+            var application = new JobApplicant
+            {
+                TestPersonality = user.TestPersonality,
+                TweeterPersonality = user.TwitterPersonality,
+                JobId = id,
+                ApplicantUserId = user.Id
+            };
+
+            _db.JobApplicants.Add(application);
+            await _db.SaveChangesAsync();
+            return Ok("Done successfully");
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Recruiter")]
+        public IActionResult getInformationByJobId(int id)
+        {
+            if (!_db.Jobs.Any(obj => obj.Id == id))
+            {
+                return BadRequest("No job whith this Id");
+            }
+            
+            return Ok(_db.JobApplicants.Where(obj => obj.JobId == id).Include(obj => obj.ApplicantUser).Include(obj => obj.ApplicantUser.Tags).Select(obj => new
+            {
+                userType = "applicant",
+                obj.ApplicantUser.Email,
+                obj.ApplicantUser.Name,
+                obj.ApplicantUser.PhoneNumber,
+                obj.ApplicantUser.BirthDay,
+                obj.ApplicantUser.Gender,
+                obj.ApplicantUser.MilitaryStatus,
+                obj.ApplicantUser.EducationLevel,
+                obj.ApplicantUser.City,
+                obj.ApplicantUser.Street,
+                obj.ApplicantUser.Country,
+                obj.ApplicantUser.TwitterUsername,
+                obj.ApplicantUser.skills,
+                obj.ApplicantUser.TestPersonality,
+                obj.ApplicantUser.TwitterPersonality,
+                tags = obj.ApplicantUser.Tags.Select(obj => obj.Name).ToList()
+            }).ToList());
+        }
+
     }
 }

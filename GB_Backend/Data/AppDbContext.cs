@@ -1,4 +1,5 @@
 ﻿using GB_Backend.Models;
+using GB_Backend.Models.APIModels;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,6 +25,7 @@ namespace GB_Backend.Data
         public DbSet<Test> Tests { get; set; }
         public DbSet<Job> Jobs { get; set; }
         public DbSet<MBTIType> MBTITypes { get; set; }
+        public DbSet<MPTIModel> MPTIModels { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<JobApplicant> JobApplicants { get; set; }
     }
