@@ -258,7 +258,7 @@ namespace GB_Backend.Controllers
                 {
                     return BadRequest(response.Content.ReadAsStringAsync().Result);
                 }
-                response = await client.GetAsync($"{twitterAccount.Data.Id}/tweets?max_results=100");
+                response = await client.GetAsync($"{twitterAccount.Data.Id}/tweets?max_results=50");
                 do
                 {
                     if (response.IsSuccessStatusCode)
@@ -277,8 +277,8 @@ namespace GB_Backend.Controllers
                         return BadRequest(response.Content.ReadAsStringAsync().Result);
                     }
 
-                    response = await client.GetAsync($"{twitterAccount.Data.Id}/tweets?max_results=100&pagination_token={tweets.Meta.Next_token}");
-                } while (tweets.Meta.Next_token != null && countOfTweets < 100);
+                    response = await client.GetAsync($"{twitterAccount.Data.Id}/tweets?max_results=50&pagination_token={tweets.Meta.Next_token}");
+                } while (tweets.Meta.Next_token != null && countOfTweets < 50);
             }
             PredictTypeModel typeModel = null;
             TweetsData tweetsData = new TweetsData();
